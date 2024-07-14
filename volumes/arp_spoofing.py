@@ -1,3 +1,6 @@
+# Eduardo Henrique dos Santos Cerolli
+# GRR20190397
+
 from scapy.all import *
 from time import sleep
 import subprocess
@@ -45,6 +48,7 @@ print("obtendo os endereços MAC")
 
 attacker_mac = obter_mac_atacante()
 
+# faz um loop ate conseguir obter os mac's usando a tabela
 while (xterminal_mac == "") or (trusted_server_mac == "") :
     ping(xterminal_ip)
     ping(trusted_server_ip)
